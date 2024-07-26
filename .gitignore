@@ -2,3 +2,4 @@
 .env
 /deployment_package
 deployment_package.zip
+*.mp4

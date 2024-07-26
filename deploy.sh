@@ -2,9 +2,13 @@
 
 LAMBDA_FUNCTION_NAME="cgtk-editing-service"
 REGION="us-east-2"
+FILE_NAME="cgtk-editing-service-deployment-package.zip"
+FOLDER_NAME="cgtk-editing-service-deployment-package"
+BUCKET_NAME="ttcgtk-bucket"
+S3_PATH="s3://$BUCKET_NAME/$FILE_NAME"
 
-if [ -f "deployment_package.zip" ]; then
-    rm "deployment_package.zip"
+if [ -f "$FILE_NAME" ]; then
+    rm "$FILE_NAME"
     if [ $? -eq 0 ]; then
         echo "Existing ZIP file removed successfully."
     else
@@ -13,8 +17,8 @@ if [ -f "deployment_package.zip" ]; then
     fi
 fi
 
-if [ -f "deployment_package" ]; then
-    rm -rf "deployment_package"
+if [ -f "$FOLDER_NAME" ]; then
+    rm -rf "$FOLDER_NAME"
     if [ $? -eq 0 ]; then
         echo "Existing ZIP file removed successfully."
     else
@@ -33,8 +37,23 @@ cd deployment_package
 zip -r ../deployment_package.zip .
 cd ..
 
+# Upload file to S3
+echo "Uploading $FILE_NAME to $S3_PATH"
+aws s3 cp $FILE_NAME $S3_PATH
+
+if [ $? -eq 0 ]; then
+    rm -rf "$FOLDER_NAME"
+    rm "$FILE_NAME"
+    echo "Upload successful."
+else
+    echo "Upload failed."
+    rm -rf "$FOLDER_NAME"
+    rm "$FILE_NAME"
+    exit 1
+fi
+
 # Update Lambda function code
-aws lambda update-function-code --function-name "$LAMBDA_FUNCTION_NAME" --zip-file fileb://"deployment_package.zip" --region "$REGION"
+aws lambda update-function-code --function-name "$LAMBDA_FUNCTION_NAME" --s3-bucket "$BUCKET_NAME" --s3-key "$FILE_NAME" --region "$REGION"
 
 # Check if the update was successful
 if [ $? -eq 0 ]; then
